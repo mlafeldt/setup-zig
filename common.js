@@ -1,5 +1,6 @@
 const os = require('os');
 const path = require('path');
+const fs = require('fs').promises;
 const core = require('@actions/core');
 const github = require('@actions/github');
 const exec = require('@actions/exec');
@@ -14,7 +15,19 @@ async function getVersion() {
     return _cached_version;
   }
 
-  const raw = core.getInput('version');
+  let raw = core.getInput('version');
+
+  if (!raw) {
+    try {
+      const zigVersionContent = await fs.readFile('.zigversion', 'utf8');
+      raw = zigVersionContent.trim();
+      core.info(`Using Zig version ${raw} from .zigversion file`);
+    } catch (error) {
+      raw = 'latest';
+      core.info('No .zigversion file found, using default: latest');
+    }
+  }
+
   if (raw === 'master') {
     const resp = await fetch(VERSIONS_JSON);
     const versions = await resp.json();
